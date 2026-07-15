@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
+from nba_api.stats.static import teams
 from nba_api.stats.endpoints import (
     leaguedashteamstats,
     leaguegamelog,
@@ -140,30 +141,40 @@ def collect_player_shots():
                 season_type_all_star="Regular Season",
                 context_measure_simple="FGA",
             ))
-            df = shots.get_data_frames()[0]
+            df = shots.shot_chart_detail.get_data_frame()
             df["SEASON"] = season
             save_csv(df, filepath)
 
 
 # League-wide shot data
 def collect_league_shots():
-    print("\nFetching League-wide shot data ---")
+    print("League-wide shot data ---")
+    all_teams = teams.get_teams()  # list of all 30 NBA teams
+
     for season in SEASONS:
         filepath = DATA_FOLDER / "shots" / "league" / f"league_shots_{season}.csv"
         if already_downloaded(filepath):
             continue
 
-        time.sleep(DELAY)
-        shots = fetch_with_retry(lambda: shotchartdetail.ShotChartDetail(
-            team_id=0,
-            player_id=0,  # 0 to get all players
-            season_nullable=season,
-            season_type_all_star="Regular Season",
-            context_measure_simple="FGA",
-        ))
-        df = shots.get_data_frames()[0]
-        df["SEASON"] = season
-        save_csv(df, filepath)
+        # Fetch each team's shots separately
+        season_shots = []
+        for team in all_teams:
+            time.sleep(DELAY)
+            shots = shotchartdetail.ShotChartDetail(
+                team_id=team["id"],
+                player_id=0,  # 0 = every player on this team
+                season_nullable=season,
+                season_type_all_star="Regular Season",
+                context_measure_simple="FGA",
+            )
+            df = shots.get_data_frames()[0]
+            print(f"  {season} {team['full_name']}: {len(df)} shots")
+            season_shots.append(df)
+
+        # Combine all 30 teams into one file for the season
+        combined = pd.concat(season_shots)
+        combined["SEASON"] = season
+        save_csv(combined, filepath)
 
 
 # Check shot coordinates coverage
