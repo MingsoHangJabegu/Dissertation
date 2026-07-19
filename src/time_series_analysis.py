@@ -1,16 +1,3 @@
-"""
-Time series trend analysis of three-point attempts (3PA) per game, 2004-05 to
-2024-25 - the "Time series analysis" objective from the dissertation proposal.
-
-Produces:
-- League-wide 3PA/game per season, annotated with Curry milestone seasons.
-- Team-by-team 3PA/game per season, with Golden State Warriors highlighted
-  against the rest of the league.
-- Team-by-team 3PA/game by point in the season (game-by-game, averaged
-  across all 21 seasons at each game number), one small panel per team.
-- The underlying per-season/per-game-number CSVs behind the charts.
-"""
-
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -57,6 +44,7 @@ ALLSTAR_GAME_DATES = {
     "2024-25": "2025-02-16",
 }
 
+# Color palette for charts
 COLOR = {
     "surface": "#fcfcfb",
     "primary_ink": "#0b0b0b",
@@ -72,38 +60,11 @@ COLOR = {
 # Team highlighted for its jump to 40+ 3PA/game
 JUMP_TEAM = "Houston Rockets"
 
-# Official primary team colors, used to color highlighted team lines
+# Official primary colors for the teams highlighted
 TEAM_COLORS = {
-    "Atlanta Hawks": "#E03A3E",
-    "Boston Celtics": "#007A33",
-    "Brooklyn Nets": "#000000",
-    "Charlotte Hornets": "#1D1160",
-    "Chicago Bulls": "#CE1141",
-    "Cleveland Cavaliers": "#860038",
-    "Dallas Mavericks": "#00538C",
-    "Denver Nuggets": "#0E2240",
-    "Detroit Pistons": "#C8102E",
     "Golden State Warriors": "#1D428A",
     "Houston Rockets": "#CE1141",
-    "Indiana Pacers": "#002D62",
-    "LA Clippers": "#C8102E",
-    "Los Angeles Lakers": "#552583",
-    "Memphis Grizzlies": "#5D76A9",
-    "Miami Heat": "#98002E",
-    "Milwaukee Bucks": "#00471B",
-    "Minnesota Timberwolves": "#0C2340",
-    "New Orleans Pelicans": "#0C2340",
-    "New York Knicks": "#006BB6",
-    "Oklahoma City Thunder": "#007AC1",
-    "Orlando Magic": "#0077C0",
-    "Philadelphia 76ers": "#006BB6",
-    "Phoenix Suns": "#1D1160",
-    "Portland Trail Blazers": "#E03A3E",
-    "Sacramento Kings": "#5A2D81",
-    "San Antonio Spurs": "#8A8D8F",
-    "Toronto Raptors": "#CE1141",
-    "Utah Jazz": "#002B5C",
-    "Washington Wizards": "#002B5C",
+    "Boston Celtics": "#007A33",
 }
 
 
