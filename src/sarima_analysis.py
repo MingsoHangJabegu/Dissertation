@@ -16,7 +16,7 @@ TS_FOLDER = PROJECT_FOLDER / "outputs" / "time_series"
 OUTPUT_FOLDER = PROJECT_FOLDER / "outputs" / "sarima"
 
 FORECAST_SEASONS = 3
-P_RANGE, Q_RANGE = range(3), range(3)
+P_RANGE, Q_RANGE = range(4), range(4)
 MAX_D = 1
 ADF_ALPHA = 0.05
 
@@ -63,7 +63,8 @@ def select_d(series, max_d=MAX_D, alpha=ADF_ALPHA):
     for d in range(max_d + 1):
         try:
             pvalue = adfuller(diffed, autolag="AIC")[1]
-        except Exception:
+        except Exception as exc:
+            print(f"select_d: ADF test failed at d={d} ({exc}); defaulting to d={max_d}")
             return max_d
         if pvalue < alpha:
             return d
@@ -71,7 +72,7 @@ def select_d(series, max_d=MAX_D, alpha=ADF_ALPHA):
     return max_d
 
 
-# Grid-search (p, q) by AIC with d fixed by select_d; seasonal order fixed at (0, 0, 0, 0)
+# Grid-search (p, q) by AICc with d fixed by select_d; seasonal order fixed at (0, 0, 0, 0)
 def fit_best_order(series):
     d = select_d(series)
     best = None
@@ -85,10 +86,10 @@ def fit_best_order(series):
                 enforce_stationarity=False, enforce_invertibility=False,
             ).fit(disp=False)
         except Exception:
-            attempts.append({"ORDER": (p, d, q), "AIC": float("nan")})
+            attempts.append({"ORDER": (p, d, q), "AICC": float("nan")})
             continue
-        attempts.append({"ORDER": (p, d, q), "AIC": fit.aic})
-        if best is None or fit.aic < best[0].aic:
+        attempts.append({"ORDER": (p, d, q), "AICC": fit.aicc})
+        if best is None or fit.aicc < best[0].aicc:
             best = (fit, (p, d, q))
     return best, attempts
 
@@ -110,7 +111,7 @@ def analyze_league_trend():
 
     result, attempts = fit_best_order(league)
     if result is None:
-        print("League trend: no SARIMA model converged")
+        print("League trend: no ARIMA model converged")
         return
     fit, order = result
 
@@ -135,10 +136,10 @@ def analyze_league_trend():
     ax.fill_between(x_fcst, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color=COLOR["highlight"], alpha=0.2, label="95% CI")
 
     ax.set_xticks(list(x_hist) + list(x_fcst))
-    ax.set_xticklabels(all_labels, rotation=45, ha="right", fontsize=8, color=COLOR["secondary_ink"])
+    ax.set_xticklabels([label[-5:] for label in all_labels], rotation=45, ha="right", fontsize=8, color=COLOR["secondary_ink"])
     ax.set_ylabel("League-wide 3PA per game", color=COLOR["primary_ink"])
     ax.set_title(
-        f"SARIMA({order[0]},{order[1]},{order[2]}) forecast – league-wide 3PA per game",
+        f"ARIMA({order[0]},{order[1]},{order[2]}) forecast – league-wide 3PA per game",
         color=COLOR["primary_ink"], fontsize=13, fontweight="bold", pad=14,
     )
     style_axis(ax, labelsize=9)
@@ -150,7 +151,7 @@ def analyze_league_trend():
     fig.savefig(OUTPUT_FOLDER / "league_3pa_sarima.png", facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    # Save a summary CSV with every attempted order and its AIC, plus the forecast for the best order
+    # Save a summary CSV with every attempted order and its AICc, plus the forecast for the best order
     for row in attempts:
         is_best = row["ORDER"] == order
         row["SERIES"] = "LEAGUE"
@@ -158,10 +159,10 @@ def analyze_league_trend():
         for s, v in zip(future_seasons, forecast_mean):
             row[f"FORECAST_{s}"] = v if is_best else None
     summary = pd.DataFrame(attempts)[
-        ["SERIES", "ORDER", "AIC", "BEST"] + [f"FORECAST_{s}" for s in future_seasons]
-    ].sort_values("AIC", na_position="last")
+        ["SERIES", "ORDER", "AICC", "BEST"] + [f"FORECAST_{s}" for s in future_seasons]
+    ].sort_values("AICC", na_position="last")
     summary.to_csv(OUTPUT_FOLDER / "league_3pa_sarima_summary.csv", index=False)
-    print(f"League trend: SARIMA{order}, AIC {fit.aic:.1f}")
+    print(f"League trend: ARIMA{order}, AICc {fit.aicc:.1f}")
 
 
 # Team-by-team 3PA/game per season
@@ -171,6 +172,11 @@ def analyze_team_season_trend():
 
     future_seasons = [f"{year}-{str(year + 1)[-2:]}" for year in range(2025, 2025 + FORECAST_SEASONS)]
     n_hist = len(SEASONS)
+    all_labels = SEASONS + future_seasons
+    tick_step = 3
+    tick_idx = range(0, len(all_labels), tick_step)
+    tick_pos = list(tick_idx)
+    tick_labels = [all_labels[i][-5:] for i in tick_idx]
 
     ncols = 5
     nrows = -(-len(teams) // ncols)
@@ -196,13 +202,16 @@ def analyze_team_season_trend():
             ax.plot(fx, forecast_mean, color=color, linewidth=1.3, linestyle="--")
             ax.fill_between(fx, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color=color, alpha=0.15)
             rows.append({
-                "TEAM": team, "ORDER": order, "AIC": fit.aic,
+                "TEAM": team, "ORDER": order, "AICC": fit.aicc,
                 **{f"FORECAST_{s}": v for s, v in zip(future_seasons, forecast_mean)},
             })
         else:
-            rows.append({"TEAM": team, "ORDER": None, "AIC": None})
+            rows.append({"TEAM": team, "ORDER": None, "AICC": None})
 
         ax.set_title(team, fontsize=8, fontweight="bold", color=COLOR["primary_ink"])
+        ax.set_xticks(tick_pos)
+        ax.set_xticklabels(tick_labels, rotation=90, fontsize=6, color=COLOR["secondary_ink"])
+        ax.label_outer()
         style_axis(ax)
 
     for ax in axes.flat[len(teams):]:
@@ -211,7 +220,7 @@ def analyze_team_season_trend():
     fig.supxlabel("Season", color=COLOR["secondary_ink"], fontsize=10)
     fig.supylabel("3PA per game", color=COLOR["secondary_ink"], fontsize=9)
     fig.suptitle(
-        f"Team-by-team 3PA/game per season – SARIMA fit + {FORECAST_SEASONS}-season forecast\n"
+        f"Team-by-team 3PA/game per season – ARIMA fit + {FORECAST_SEASONS}-season forecast\n"
         "(dashed line/band: forecast and its 95% CI)",
         color=COLOR["primary_ink"], fontsize=13, fontweight="bold",
     )
@@ -247,9 +256,9 @@ def _analyze_team_matchweek(csv_name, ylabel, title, out_name):
             # The first `loglikelihood_burn` fitted values are an unreliable Kalman-filter warm-up artifact
             burn = fit.loglikelihood_burn
             ax.plot(series.index[burn:], fit.fittedvalues.values[burn:], color=color, linewidth=1.6)
-            rows.append({"TEAM": team_name, "ORDER": order, "AIC": fit.aic})
+            rows.append({"TEAM": team_name, "ORDER": order, "AICC": fit.aicc})
         else:
-            rows.append({"TEAM": team_name, "ORDER": None, "AIC": None})
+            rows.append({"TEAM": team_name, "ORDER": None, "AICC": None})
 
         ax.set_title(team_name, fontsize=8, fontweight="bold", color=COLOR["primary_ink"])
         style_axis(ax, labelsize=6)
@@ -260,7 +269,7 @@ def _analyze_team_matchweek(csv_name, ylabel, title, out_name):
     fig.supxlabel("Game number in season", color=COLOR["secondary_ink"], fontsize=10)
     fig.supylabel(ylabel, color=COLOR["secondary_ink"], fontsize=9)
     fig.suptitle(
-        f"{title} – SARIMA in-sample fit (bold) vs actual (faint)",
+        f"{title} – ARIMA in-sample fit (bold) vs actual (faint)",
         color=COLOR["primary_ink"], fontsize=13, fontweight="bold",
     )
     fig.tight_layout(rect=(0.015, 0.015, 1, 0.92))

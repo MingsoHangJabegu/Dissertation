@@ -1,31 +1,31 @@
-TEAM,ORDER,AIC
-Atlanta Hawks,"(2, 0, 2)",228.41766188165298
-Brooklyn Nets,"(1, 1, 2)",270.9154371512858
-Boston Celtics,"(1, 0, 2)",256.0554195367597
-Charlotte Hornets,"(1, 0, 2)",241.17910591961
-Chicago Bulls,"(1, 0, 2)",259.1075764476751
-Cleveland Cavaliers,"(1, 0, 2)",258.48540366254883
-Dallas Mavericks,"(1, 0, 2)",263.7681874601426
-Denver Nuggets,"(1, 0, 2)",252.13414496651862
-Detroit Pistons,"(1, 0, 2)",267.7842160245135
-Golden State Warriors,"(1, 0, 2)",280.78624754990676
-Houston Rockets,"(1, 0, 2)",285.216175856767
-Indiana Pacers,"(2, 0, 2)",254.62738175455888
-LA Clippers,"(1, 0, 2)",256.69230243647826
-Los Angeles Lakers,"(1, 0, 2)",247.63284955284834
-Memphis Grizzlies,"(1, 0, 2)",258.1400836529705
-Miami Heat,"(1, 0, 2)",252.26734201189424
-Milwaukee Bucks,"(1, 0, 2)",264.06680296363066
-Minnesota Timberwolves,"(1, 0, 2)",232.90386258111783
-New Orleans Pelicans,"(1, 0, 1)",264.6995179438167
-New York Knicks,"(1, 0, 2)",259.3945805149283
-Oklahoma City Thunder,"(0, 1, 2)",241.61087797435067
-Orlando Magic,"(1, 0, 2)",271.1783694953963
-Philadelphia 76ers,"(2, 1, 2)",253.38800189918774
-Phoenix Suns,"(0, 1, 1)",280.48204187648895
-Portland Trail Blazers,"(1, 1, 2)",239.0191604449595
-Sacramento Kings,"(1, 0, 2)",265.84717987830726
-San Antonio Spurs,"(2, 0, 2)",248.28314495939063
-Toronto Raptors,"(2, 0, 2)",231.57888245810398
-Utah Jazz,"(1, 0, 2)",257.66790468775946
-Washington Wizards,"(1, 0, 2)",251.72727548770675
+TEAM,ORDER,AICC
+Atlanta Hawks,"(1, 0, 3)",225.66331003608786
+Brooklyn Nets,"(2, 1, 3)",266.08051291001004
+Boston Celtics,"(1, 0, 3)",253.86203798352292
+Charlotte Hornets,"(1, 0, 2)",241.71964646015056
+Chicago Bulls,"(3, 0, 3)",253.9551557342034
+Cleveland Cavaliers,"(1, 0, 3)",258.8211972054692
+Dallas Mavericks,"(1, 0, 3)",261.6345606052314
+Denver Nuggets,"(1, 0, 3)",252.5276270640947
+Detroit Pistons,"(1, 0, 3)",266.8479386992859
+Golden State Warriors,"(2, 0, 3)",276.44948311167803
+Houston Rockets,"(1, 0, 3)",285.28148671329836
+Indiana Pacers,"(2, 0, 3)",253.82135725728034
+LA Clippers,"(1, 0, 3)",256.2792794490614
+Los Angeles Lakers,"(1, 0, 3)",247.39978871575508
+Memphis Grizzlies,"(3, 0, 3)",255.22780442650478
+Miami Heat,"(1, 0, 3)",252.75495751354853
+Milwaukee Bucks,"(1, 0, 3)",263.5802528897668
+Minnesota Timberwolves,"(1, 0, 2)",233.44440312165838
+New Orleans Pelicans,"(3, 0, 3)",260.21680640187645
+New York Knicks,"(1, 0, 3)",256.8951340201123
+Oklahoma City Thunder,"(0, 1, 3)",240.11141194007917
+Orlando Magic,"(1, 0, 3)",269.0892768664965
+Philadelphia 76ers,"(0, 1, 3)",250.11566514647077
+Phoenix Suns,"(3, 1, 3)",274.8706854023885
+Portland Trail Blazers,"(2, 1, 3)",236.64044330374156
+Sacramento Kings,"(1, 0, 3)",265.5730799847628
+San Antonio Spurs,"(1, 0, 3)",247.44925315243424
+Toronto Raptors,"(3, 0, 3)",231.9933461466815
+Utah Jazz,"(1, 0, 3)",257.30853390624753
+Washington Wizards,"(1, 0, 3)",244.37877643202626
