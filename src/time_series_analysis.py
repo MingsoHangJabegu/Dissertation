@@ -57,7 +57,7 @@ COLOR = {
     "highlight": "#d6822a",
 }
 
-# Team highlighted for its jump to 40+ 3PA/game
+# Team highlighted for its jump
 JUMP_TEAM = "Houston Rockets"
 
 # Official primary colors for the teams highlighted
@@ -256,7 +256,7 @@ def plot_team_trend(team_pivot, league):
     ax.plot(
         x, team_pivot[JUMP_TEAM].values,
         color=TEAM_COLORS.get(JUMP_TEAM, COLOR["highlight"]), linewidth=2, alpha=0.9, zorder=4,
-        label=f"{JUMP_TEAM} (only team to reach 40+ 3PA/game)",
+        label=JUMP_TEAM,
     )
 
     ax.plot(
