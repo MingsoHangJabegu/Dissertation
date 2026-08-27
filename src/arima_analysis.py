@@ -13,7 +13,7 @@ from time_series_analysis import COLOR, SEASONS, TEAM_COLORS
 
 PROJECT_FOLDER = Path(__file__).resolve().parent.parent
 TS_FOLDER = PROJECT_FOLDER / "outputs" / "time_series"
-OUTPUT_FOLDER = PROJECT_FOLDER / "outputs" / "sarima"
+OUTPUT_FOLDER = PROJECT_FOLDER / "outputs" / "arima"
 
 FORECAST_SEASONS = 3
 P_RANGE, Q_RANGE = range(4), range(4)
@@ -82,7 +82,7 @@ def fit_best_order(series):
             continue
         try:
             fit = SARIMAX(
-                series, order=(p, d, q),
+                series, order=(p, d, q), trend="c",
                 enforce_stationarity=False, enforce_invertibility=False,
             ).fit(disp=False)
         except Exception:
@@ -92,6 +92,30 @@ def fit_best_order(series):
         if best is None or fit.aicc < best[0].aicc:
             best = (fit, (p, d, q))
     return best, attempts
+
+
+# Format the fitted ARIMA(p,d,q) equation with its estimated coefficients
+def format_arima_equation(fit, order):
+    p, d, q = order
+    params = fit.params
+    y_expr = "y'_t" if d else "y_t"
+
+    def lag_label(i):
+        return f"y'_{{t-{i}}}" if d else f"y_{{t-{i}}}"
+
+    terms = []
+    if "intercept" in params.index:
+        terms.append(f"{params['intercept']:.3f}")
+    for i in range(1, p + 1):
+        coef = params[f"ar.L{i}"]
+        sign = "+" if coef >= 0 else "-"
+        terms.append(f"{sign} {abs(coef):.3f}*{lag_label(i)}")
+    rhs = " ".join(terms) + " + e_t" if terms else "e_t"
+    for j in range(1, q + 1):
+        coef = params[f"ma.L{j}"]
+        sign = "+" if coef >= 0 else "-"
+        rhs += f" {sign} {abs(coef):.3f}*e_{{t-{j}}}"
+    return f"{y_expr} = {rhs}"
 
 
 def style_axis(ax, labelsize=7):
@@ -148,7 +172,7 @@ def analyze_league_trend():
         text.set_color(COLOR["secondary_ink"])
 
     fig.tight_layout()
-    fig.savefig(OUTPUT_FOLDER / "league_3pa_sarima.png", facecolor=fig.get_facecolor())
+    fig.savefig(OUTPUT_FOLDER / "league_3pa_arima.png", facecolor=fig.get_facecolor())
     plt.close(fig)
 
     # Save a summary CSV with every attempted order and its AICc, plus the forecast for the best order
@@ -156,13 +180,18 @@ def analyze_league_trend():
         is_best = row["ORDER"] == order
         row["SERIES"] = "LEAGUE"
         row["BEST"] = is_best
-        for s, v in zip(future_seasons, forecast_mean):
+        row["COEFFICIENTS"] = {name: {"COEF": round(float(fit.params[name]), 3), "SE": round(float(fit.bse[name]), 3), "P": round(float(fit.pvalues[name]), 4)} for name in fit.params.index} if is_best else None
+        for s, v, lo, hi in zip(future_seasons, forecast_mean, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1]):
             row[f"FORECAST_{s}"] = v if is_best else None
+            row[f"FORECAST_{s}_LOWER95"] = lo if is_best else None
+            row[f"FORECAST_{s}_UPPER95"] = hi if is_best else None
+    forecast_cols = [c for s in future_seasons for c in (f"FORECAST_{s}", f"FORECAST_{s}_LOWER95", f"FORECAST_{s}_UPPER95")]
     summary = pd.DataFrame(attempts)[
-        ["SERIES", "ORDER", "AICC", "BEST"] + [f"FORECAST_{s}" for s in future_seasons]
+        ["SERIES", "ORDER", "AICC", "BEST", "COEFFICIENTS"] + forecast_cols
     ].sort_values("AICC", na_position="last")
-    summary.to_csv(OUTPUT_FOLDER / "league_3pa_sarima_summary.csv", index=False)
+    summary.to_csv(OUTPUT_FOLDER / "league_3pa_arima_summary.csv", index=False)
     print(f"League trend: ARIMA{order}, AICc {fit.aicc:.1f}")
+    print(f"  {format_arima_equation(fit, order)}")
 
 
 # Team-by-team 3PA/game per season
@@ -225,10 +254,10 @@ def analyze_team_season_trend():
         color=COLOR["primary_ink"], fontsize=13, fontweight="bold",
     )
     fig.tight_layout(rect=(0.015, 0.015, 1, 0.91))
-    fig.savefig(OUTPUT_FOLDER / "team_3pa_sarima.png", facecolor=fig.get_facecolor())
+    fig.savefig(OUTPUT_FOLDER / "team_3pa_arima.png", facecolor=fig.get_facecolor())
     plt.close(fig)
 
-    pd.DataFrame(rows).to_csv(OUTPUT_FOLDER / "team_3pa_sarima_summary.csv", index=False)
+    pd.DataFrame(rows).to_csv(OUTPUT_FOLDER / "team_3pa_arima_summary.csv", index=False)
 
 
 # Team-by-team 3PA/game by point in the season
@@ -284,7 +313,7 @@ def analyze_team_matchweek_trend():
         "team_3pa_per_game_number.csv",
         ylabel="3PA per game\n(avg across seasons at this game number)",
         title="Team 3PA per game by point in the season",
-        out_name="team_3pa_matchweek_sarima",
+        out_name="team_3pa_matchweek_arima",
     )
 
 
@@ -293,7 +322,7 @@ def analyze_team_matchweek_relative_trend():
         "team_3pa_relative_per_game_number.csv",
         ylabel="3PA vs own season average (%)",
         title="Team 3PA relative to own season average, by point in the season",
-        out_name="team_3pa_matchweek_relative_sarima",
+        out_name="team_3pa_matchweek_relative_arima",
     )
 
 
