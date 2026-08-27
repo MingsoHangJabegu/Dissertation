@@ -229,7 +229,7 @@ def plot_changepoints(league, breakpoints, means, method_label, filename):
         )
 
     mvp_x = SEASONS.index(MVP_SEASON)
-    ax.axvline(mvp_x, color=COLOR["muted"], linestyle=":", linewidth=1.5, alpha=0.9, label=f"Curry MVP season ({MVP_SEASON})")
+    ax.axvline(mvp_x, color=COLOR["muted"], linestyle=":", linewidth=1.5, alpha=0.9, label=f"Curry unanimous MVP season ({MVP_SEASON})")
 
     ax.set_xticks(list(x))
     ax.set_xticklabels(SEASONS, rotation=45, ha="right", fontsize=8, color=COLOR["secondary_ink"])
@@ -332,7 +332,7 @@ def plot_team_breakpoint_histogram(summary, method_label, filename):
     mvp_x = SEASONS.index(MVP_SEASON)
     ax.axvline(
         mvp_x, color=COLOR["muted"], linestyle=":", linewidth=1.5, alpha=0.9,
-        label=f"Curry MVP season ({MVP_SEASON})",
+        label=f"Curry unanimous MVP season ({MVP_SEASON})",
     )
 
     ax.set_xticks(range(1, len(SEASONS)))
@@ -345,7 +345,7 @@ def plot_team_breakpoint_histogram(summary, method_label, filename):
         color=COLOR["primary_ink"], fontsize=13, fontweight="bold", pad=14,
     )
     style_axis(ax)
-    legend = ax.legend(loc="upper right", frameon=False, fontsize=9)
+    legend = ax.legend(loc="upper left", frameon=False, fontsize=9)
     for text in legend.get_texts():
         text.set_color(COLOR["secondary_ink"])
 
