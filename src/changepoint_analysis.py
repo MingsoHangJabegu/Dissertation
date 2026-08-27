@@ -15,8 +15,13 @@ OUTPUT_FOLDER = PROJECT_FOLDER / "outputs" / "changepoint"
 MVP_SEASON = "2015-16"
 MIN_SEGMENT_SIZE = 2  # minimum seasons per segment
 BIC_PENALTY_MULTIPLIER = 2.0  # multiplies the log(n) BIC penalty
+PENALTY_MULTIPLIERS = [1.0, 1.5, 2.0, 2.5, 3.0]
 N_RANDOM_INTERVALS = 200  # number of random intervals drawn for wild binary segmentation
 RANDOM_INTERVAL_SEED = 0
+
+
+def penalty_tag(penalty_multiplier):
+    return f"pen{penalty_multiplier:.1f}".replace(".", "p")
 
 
 # Residual sum of squares of a segment around its own mean
@@ -367,17 +372,18 @@ METHODS = {
 
 
 # Run and save
-def analyze_team_changepoints(method):
+def analyze_team_changepoints(method, penalty_multiplier=BIC_PENALTY_MULTIPLIER):
     team_pivot = pd.read_csv(TS_FOLDER / "team_3pa_per_season.csv", index_col=0)
     team_pivot = team_pivot.reindex(SEASONS)
     mvp_index = SEASONS.index(MVP_SEASON)
+    tag = penalty_tag(penalty_multiplier)
 
     rows = []
     results = {}
     n_significant = 0
     for team in team_pivot.columns:
         series = team_pivot[team].values
-        breakpoints = method["segment"](series)
+        breakpoints = method["segment"](series, penalty_multiplier=penalty_multiplier)
         means = segment_means(series, breakpoints)
         results[team] = (breakpoints, means)
 
@@ -390,6 +396,7 @@ def analyze_team_changepoints(method):
             distance_from_mvp = abs(bp - mvp_index)
             rows.append({
                 "TEAM": team,
+                "PENALTY_MULTIPLIER": penalty_multiplier,
                 "BREAKPOINT_INDEX": bp,
                 "BETWEEN_SEASONS": f"{SEASONS[bp - 1]} -> {SEASONS[bp]}",
                 "SEGMENT_MEAN_BEFORE": means[i],
@@ -402,27 +409,28 @@ def analyze_team_changepoints(method):
             })
 
     summary = pd.DataFrame(rows)
-    summary.to_csv(OUTPUT_FOLDER / f"team_3pa_changepoints_summary_{method['suffix']}.csv", index=False)
-    plot_team_changepoints(team_pivot, results, method["label"], f"team_3pa_changepoints_{method['suffix']}.png")
-    plot_team_breakpoint_histogram(summary, method["label"], f"team_breakpoint_histogram_{method['suffix']}.png")
+    summary.to_csv(OUTPUT_FOLDER / f"team_3pa_changepoints_summary_{method['suffix']}_{tag}.csv", index=False)
+    plot_team_changepoints(team_pivot, results, method["label"], f"team_3pa_changepoints_{method['suffix']}_{tag}.png")
+    plot_team_breakpoint_histogram(summary, method["label"], f"team_breakpoint_histogram_{method['suffix']}_{tag}.png")
 
     within = int(summary["WITHIN_TWO_SEASONS_OF_MVP"].sum()) if not summary.empty else 0
     print(
-        f"[{method['label']}] Team change-point detection: {len(rows)} breakpoint(s) across "
+        f"[{method['label']}, penalty x{penalty_multiplier}] Team change-point detection: {len(rows)} breakpoint(s) across "
         f"{len(team_pivot.columns)} teams ({within} within two seasons of Curry's {MVP_SEASON} MVP season)"
     )
     print(
-        f"  Permutation test (per team, 5000 permutations): "
+        f"  Permutation test (per team, 20000 permutations): "
         f"{n_significant}/{len(team_pivot.columns)} teams significant at alpha=0.05"
     )
 
 
 # Run and save
-def analyze_league_changepoints(method):
+def analyze_league_changepoints(method, penalty_multiplier=BIC_PENALTY_MULTIPLIER):
     league = pd.read_csv(TS_FOLDER / "league_3pa_per_season.csv", index_col=0)["LEAGUE_3PA_PER_GAME"]
     league.index = range(len(league))
+    tag = penalty_tag(penalty_multiplier)
 
-    breakpoints = method["segment"](league.values)
+    breakpoints = method["segment"](league.values, penalty_multiplier=penalty_multiplier)
     means = segment_means(league.values, breakpoints)
     mvp_index = SEASONS.index(MVP_SEASON)
 
@@ -430,6 +438,7 @@ def analyze_league_changepoints(method):
     for i, bp in enumerate(breakpoints):
         distance_from_mvp = abs(bp - mvp_index)
         rows.append({
+            "PENALTY_MULTIPLIER": penalty_multiplier,
             "BREAKPOINT_INDEX": bp,
             "BETWEEN_SEASONS": f"{SEASONS[bp - 1]} -> {SEASONS[bp]}",
             "SEGMENT_MEAN_BEFORE": means[i],
@@ -445,10 +454,10 @@ def analyze_league_changepoints(method):
         row["SIGNIFICANT_AT_0_05"] = p_value < 0.05
 
     summary = pd.DataFrame(rows)
-    summary.to_csv(OUTPUT_FOLDER / f"league_3pa_changepoints_summary_{method['suffix']}.csv", index=False)
-    plot_changepoints(league, breakpoints, means, method["label"], f"league_3pa_changepoints_{method['suffix']}.png")
+    summary.to_csv(OUTPUT_FOLDER / f"league_3pa_changepoints_summary_{method['suffix']}_{tag}.csv", index=False)
+    plot_changepoints(league, breakpoints, means, method["label"], f"league_3pa_changepoints_{method['suffix']}_{tag}.png")
 
-    print(f"[{method['label']}] Change-point detection: found {len(breakpoints)} breakpoint(s)")
+    print(f"[{method['label']}, penalty x{penalty_multiplier}] Change-point detection: found {len(breakpoints)} breakpoint(s)")
     for row in rows:
         print(
             f"  {row['BETWEEN_SEASONS']} (mean {row['SEGMENT_MEAN_BEFORE']:.2f} -> {row['SEGMENT_MEAN_AFTER']:.2f}, "
@@ -456,15 +465,16 @@ def analyze_league_changepoints(method):
         )
     print(
         f"  Permutation test: observed RSS reduction = {observed_gain:.2f}, p-value = {p_value:.4f} "
-        f"({'significant' if p_value < 0.05 else 'not significant'} at alpha=0.05, 10000 permutations)"
+        f"({'significant' if p_value < 0.05 else 'not significant'} at alpha=0.05, 20000 permutations)"
     )
 
 
 def main():
     OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
-    for method in METHODS.values():
-        analyze_league_changepoints(method)
-        analyze_team_changepoints(method)
+    for penalty_multiplier in PENALTY_MULTIPLIERS:
+        for method in METHODS.values():
+            analyze_league_changepoints(method, penalty_multiplier)
+            analyze_team_changepoints(method, penalty_multiplier)
     print("Saved outputs to", OUTPUT_FOLDER)
 
 
