@@ -114,6 +114,7 @@ def collect_player_stats():
         player_id = get_player_id(name)
         career = fetch_with_retry(lambda: playercareerstats.PlayerCareerStats(player_id=player_id))
         df = career.get_data_frames()[0]
+        df = df[df["SEASON_ID"] <= "2024-25"]
         save_csv(df, filepath)
 
 
