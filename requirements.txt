@@ -1,0 +1,5 @@
+matplotlib==3.11.2
+nba_api==1.11.4
+numpy==2.5.3
+pandas==3.0.6
+statsmodels==0.14.6
